@@ -1,62 +1,90 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include <string.h>
 #include <sys/wait.h>
-
-
+//#include <signal.h>
 
 using namespace std;
 
-int data()
+//задаёт размерность массива
+int number(){
+	string line;
+	ifstream in;
+	in.open("/tmp/indata.txt");
+	int n=0;
+	while (getline(in, line))
+			{
+				n++;		
+			}		
+	return n;
+
+}
+//увеличивает размерность массива
+void push_back(string *&arr, int &size)
 {
-		string line;
-		ofstream out;
-		out.open("/tmp/outdata.txt");
-		ifstream in;
-		in.open("/tmp/indata.txt");
-		if (out.is_open())
-    		{
-    		printf("Создал outdata.txt\n");
-    		sleep(1);
-    		}
-    		else 
-		{
-    		printf("ОШИБКА\n");
-    		exit(0);
-    		}
+	string *newArray = new string[size];
+	for (int i = 0; i<size; i++)
+	{
+		newArray[i]=arr[i];                 
+	}
+
+	delete[] arr;
+
+	arr = newArray;
+}
+
+
+
+
+int main(int argc, char* argv[])
+{
+	string line;
+	ofstream out;
+	out.open("/tmp/outdata.txt");
+	ifstream in;
+	in.open("/tmp/indata.txt");
+	int p=0;
+	int n = number();
+	string *mass = new string[n];
+
+	pid_t p1 = fork();
+	if (p1 == 0)
+	{
 		
-		printf("Открываю outdata.txt\n");
-	        sleep(1);
+		while(1)
+		{						
+			in.open("/tmp/indata.txt");
+			int i=0;
+			while (getline(in, line))
+			{
 
+				if (mass[i] != line){
+					mass[i] = line;
+					out << line << endl;				
+				}
+				i++;		
+			}
 
-		pid_t p1 = fork();
-		if (p1 == 0)
-		{
-			if (out.is_open())
-				     {
-				      	 while (getline(in, line))
-				       	  {
-				            out << line << endl;
-				      	  }
-				     }
-
-			system("less /tmp/outdata.txt");
-			printf("Закрыл outdata.txt\n");
-			out.close();
-			return 0;
-
-	    	}
-
-
-		
-		pid_t w_pid1 = waitpid(p1, NULL, 0);
-		if (w_pid1 == -1) {exit(0);}
-		if (w_pid1 > 0)
-		{
-			sleep(1);
-			remove("/tmp/outdata.txt");
-			printf("Удалил outdata.txt\n");
+			in.close();
+			n = number();
+			push_back(mass,n);
+								       	  
 		}
-		in.close();
-		return 0;		
-} 
+
+
+	} else{
+		system("less /tmp/outdata.txt");
+		sleep(1);
+		kill(p1, SIGKILL);
+	}
+	if (p1 > 0){
+		wait(NULL);
+		remove("/tmp/outdata.txt");
+		printf("Удалил outdata.txt\n");
+	}
+		
+
+	delete [] mass;
+    return 0;
+}  
