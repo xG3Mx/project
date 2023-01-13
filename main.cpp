@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
 		while(1){
 			FILE *in = fopen("/tmp/indata.txt", "r");
 			FILE *out = fopen("/tmp/outdata.txt", "r");
-		    while (((k = fgets(c,256,in)) != NULL)&&(m==0)){
-		    	l = fgets(d,256,out);
+		   	while (((k = fgets(c,256,in)) != NULL)&&(m==0)){
+		    		l = fgets(d,256,out);
 				if (strcmp(c,d) != 0){
 					fclose(out);
 					fseek(in,0,SEEK_SET);
