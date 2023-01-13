@@ -14,7 +14,6 @@ int main(int argc, char* argv[])
 	int m=0;
 	char c[256];
 	char d[256];
-	long pos;
 	char* k,*l;
 	FILE *out = fopen("/tmp/outdata.txt", "w");
 	FILE *in = fopen("/tmp/indata.txt", "r");
@@ -59,7 +58,7 @@ int main(int argc, char* argv[])
 	if (id > 0){
 		wait(NULL);
 		remove("/tmp/outdata.txt");
-	    printf("Удалил outdata.txt\n");
+	    	printf("Удалил outdata.txt\n");
 	}
 
 
