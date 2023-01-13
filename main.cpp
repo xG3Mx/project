@@ -6,84 +6,62 @@
 
 using namespace std;
 
-//задаёт размерность массива
-int number(){
-	string line;
-	ifstream in;
-	in.open("/tmp/indata.txt");
-	int n=0;
-	while (getline(in, line))
-			{
-				n++;		
-			}		
-	return n;
-
-}
-//увеличивает размерность массива
-void push_back(string *&arr, int &size)
-{
-	string *newArray = new string[size];
-	for (int i = 0; i<size; i++)
-	{
-		newArray[i]=arr[i];                 
-	}
-
-	delete[] arr;
-
-	arr = newArray;
-}
-
 
 
 
 int main(int argc, char* argv[])
 {
-	string line;
-	ofstream out;
-	out.open("/tmp/outdata.txt");
-	ifstream in;
-	in.open("/tmp/indata.txt");
-	int p=0;
-	int n = number();
-	string *mass = new string[n];
-
-	pid_t p1 = fork();
-	if (p1 == 0)
+	int m=0;
+	char c[256];
+	char d[256];
+	long pos;
+	char* k,*l;
+	FILE *out = fopen("/tmp/outdata.txt", "w");
+	FILE *in = fopen("/tmp/indata.txt", "r");
+	while ((k = fgets(c,150,in)) != NULL){
+			fputs(k,out);
+	}
+	fclose(in);
+	fclose(out);
+	pid_t id = fork();
+	if (id == 0)
 	{
-		
-		while(1)
-		{						
-			in.open("/tmp/indata.txt");
-			int i=0;
-			while (getline(in, line))
-			{
+		while(1){
+			FILE *in = fopen("/tmp/indata.txt", "r");
+			FILE *out = fopen("/tmp/outdata.txt", "r");
+		    while (((k = fgets(c,256,in)) != NULL)&&(m==0)){
+		    	l = fgets(d,256,out);
+				if (strcmp(c,d) != 0){
+					fclose(out);
+					fseek(in,0,SEEK_SET);
+					FILE *out = fopen("/tmp/outdata.txt", "w");
 
-				if (mass[i] != line){
-					mass[i] = line;
-					out << line << endl;				
+					while ((k = fgets(c,256,in)) != NULL){					
+						fputs(k,out);
+					}
+					m+=1;
 				}
-				i++;		
-			}
-
-			in.close();
-			n = number();
-			push_back(mass,n);
-								       	  
+		  
+		    }
+		    m=0;
+		    fclose(in);
+		    fclose(out);
+			
 		}
-
+			
 
 	} else{
 		system("less /tmp/outdata.txt");
-		sleep(1);
-		kill(p1, SIGKILL);
+		kill(id, SIGKILL);
+		
 	}
-	if (p1 > 0){
+
+	if (id > 0){
 		wait(NULL);
 		remove("/tmp/outdata.txt");
-		printf("Удалил outdata.txt\n");
+	    printf("Удалил outdata.txt\n");
 	}
-		
 
-	delete [] mass;
+
     return 0;
-}  
+}   
