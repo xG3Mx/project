@@ -1,53 +1,102 @@
 #include <iostream>
-#include <fstream>
+
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/inotify.h>
 
 using namespace std;
 
 
-
+#define MAX_EVENT_MONITOR 2048
+#define NAME_LEN 32
+#define MONITOR_EVENT_SIZE (sizeof(struct inotify_event))
+#define BUFFER_LEN MAX_EVENT_MONITOR*(MONITOR_EVENT_SIZE+NAME_LEN)
 
 int main(int argc, char* argv[])
 {
-	int m=0;
-	char c[256];
-	char d[256];
-	char* k,*l;
-	FILE *out = fopen("/tmp/outdata.txt", "w");
-	FILE *in = fopen("/tmp/indata.txt", "r");
-	while ((k = fgets(c,150,in)) != NULL){
-			fputs(k,out);
+
+	FILE *fin;
+	FILE *fout;
+	const int BLOCK_SIZE = 256;
+	char in_buffer[BLOCK_SIZE];
+
+	//заполняет outdata
+	if(!(fin = fopen("/tmp/indata.txt", "rb")) == NULL &&
+	   !(fout = fopen("/tmp/outdata.txt", "wb")) == NULL) 
+	{
+
+		fseeko64(fin, 0, SEEK_END);
+		long long file_size = ftello64(fin);
+		fseeko64(fin, 0, SEEK_SET);
+
+		for(size_t i = 0; i <= file_size / BLOCK_SIZE; ++i) 
+		{
+			int readed = fread(in_buffer, sizeof(unsigned char), BLOCK_SIZE, fin);
+			fwrite(in_buffer, sizeof(unsigned char), readed, fout);
+		}
+		fclose(fin);
+		fclose(fout);
+
 	}
-	fclose(in);
-	fclose(out);
+
+
+
+
 	pid_t id = fork();
 	if (id == 0)
 	{
-		while(1){
-			FILE *in = fopen("/tmp/indata.txt", "r");
-			FILE *out = fopen("/tmp/outdata.txt", "r");
-		   	while (((k = fgets(c,256,in)) != NULL)&&(m==0)){
-		    		l = fgets(d,256,out);
-				if (strcmp(c,d) != 0){
-					fclose(out);
-					fseek(in,0,SEEK_SET);
-					FILE *out = fopen("/tmp/outdata.txt", "w");
+		char *FULLNAME;
+		int fd, watch_desc;
+		char buffer[BUFFER_LEN];
 
-					while ((k = fgets(c,256,in)) != NULL){					
-						fputs(k,out);
+		fd = inotify_init();
+
+		watch_desc = inotify_add_watch(fd,"/tmp",IN_MODIFY);
+		
+		int i = 0;
+		while(1){
+			i = 0;
+			int total_read = read(fd,buffer,BUFFER_LEN);
+			while(i<total_read)
+			{
+				struct inotify_event *event=(inotify_event*)&buffer[i];
+				if(event->len)
+				{
+					if(event->mask & IN_MODIFY)
+					{
+						if(event->mask & IN_ISDIR)
+						{						
+						}
+						else{
+							FULLNAME = event->name;
+							if(strcmp(FULLNAME,"indata.txt")==0)
+							{							
+								if(!(fin = fopen("/tmp/indata.txt", "rb")) == NULL &&
+								   !(fout = fopen("/tmp/outdata.txt", "wb")) == NULL) 
+								{
+
+								    fseeko64(fin, 0, SEEK_END);
+								    long long file_size = ftello64(fin);
+								    fseeko64(fin, 0, SEEK_SET);
+
+								    for(size_t i = 0; i <= file_size / BLOCK_SIZE; ++i) 
+								    {
+								        int readed = fread(in_buffer, sizeof(unsigned char), BLOCK_SIZE, fin);
+								        fwrite(in_buffer, sizeof(unsigned char), readed, fout);
+								    }
+								    fclose(fin);
+								    fclose(fout);
+								}
+							}
+						}
 					}
-					m+=1;
+					i+=MONITOR_EVENT_SIZE+event->len;
 				}
-		  
-		    }
-		    m=0;
-		    fclose(in);
-		    fclose(out);
-			
-		}
-			
+			}
+
+		}	
+
 
 	} else{
 		system("less /tmp/outdata.txt");
@@ -58,9 +107,9 @@ int main(int argc, char* argv[])
 	if (id > 0){
 		wait(NULL);
 		remove("/tmp/outdata.txt");
-	    	printf("Удалил outdata.txt\n");
 	}
 
 
     return 0;
+		
 }   
